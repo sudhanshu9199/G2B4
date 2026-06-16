@@ -14,7 +14,16 @@ import {
   HelpCircle,
   Code,
   Joystick,
-  SkipForward
+  SkipForward,
+  Sparkles,
+  Sun,
+  Moon,
+  Trophy,
+  BookOpen,
+  Compass,
+  Award,
+  Check,
+  X
 } from 'lucide-react';
 import { sound } from './utils/audio';
 
@@ -28,14 +37,16 @@ const CAKE_POS = { row: 2, col: 2 };  // C3 (middle-ish)
 const MEAL_POS = { row: 0, col: 3 };  // D1 (top-right)
 
 // Custom SVGs for game assets
-const CatSvg = ({ animationState }) => {
+const CatSvg = ({ animationState, direction }) => {
   let catClass = "sprite cat ";
   if (animationState === 'moving') catClass += 'moving';
   if (animationState === 'bumping') catClass += 'bumping';
   if (animationState === 'celebrating') catClass += 'celebrating';
 
+  const transformStyle = direction === 'LEFT' ? 'scaleX(-1)' : 'scaleX(1)';
+
   return (
-    <svg className={catClass} viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
+    <svg className={catClass} viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: transformStyle, transition: 'transform 0.2s ease' }}>
       {/* Tail */}
       <path d="M15,65 Q5,50 15,35 Q20,32 18,45 Q15,55 23,60 Z" fill="#f97316" stroke="#c2410c" strokeWidth="2" />
       {/* Ears */}
@@ -55,14 +66,18 @@ const CatSvg = ({ animationState }) => {
       {/* Face details */}
       {/* Eyes */}
       <circle cx="43" cy="34" r="4.5" fill="#fff" stroke="#000" strokeWidth="1" />
-      <circle cx="44.5" cy="34" r="2" fill="#22c55e" /> {/* Green iris */}
-      <circle cx="44.5" cy="34" r="1" fill="#000" />
-      <circle cx="43.5" cy="33" r="0.8" fill="#fff" /> {/* Highlight */}
+      <g className="eye-pupil blinking" style={{ transformOrigin: '43px 34px' }}>
+        <circle cx="44.5" cy="34" r="2" fill="#22c55e" /> {/* Green iris */}
+        <circle cx="44.5" cy="34" r="1" fill="#000" />
+        <circle cx="43.5" cy="33" r="0.8" fill="#fff" /> {/* Highlight */}
+      </g>
 
       <circle cx="57" cy="34" r="4.5" fill="#fff" stroke="#000" strokeWidth="1" />
-      <circle cx="55.5" cy="34" r="2" fill="#22c55e" /> {/* Green iris */}
-      <circle cx="55.5" cy="34" r="1" fill="#000" />
-      <circle cx="54.5" cy="33" r="0.8" fill="#fff" /> {/* Highlight */}
+      <g className="eye-pupil blinking" style={{ transformOrigin: '57px 34px' }}>
+        <circle cx="55.5" cy="34" r="2" fill="#22c55e" /> {/* Green iris */}
+        <circle cx="55.5" cy="34" r="1" fill="#000" />
+        <circle cx="54.5" cy="33" r="0.8" fill="#fff" /> {/* Highlight */}
+      </g>
 
       {/* Cheeks */}
       <circle cx="37" cy="41" r="2.5" fill="#f43f5e" opacity="0.5" />
@@ -206,6 +221,61 @@ const MealSprite = ({ collected }) => {
   );
 };
 
+// Paw Print SVG component
+const PawPrintSvg = () => (
+  <svg className="paw-print" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="15" rx="5" ry="4" />
+    <circle cx="6" cy="9" r="2.2" />
+    <circle cx="10" cy="6.5" r="2.2" />
+    <circle cx="14" cy="6.5" r="2.2" />
+    <circle cx="18" cy="9" r="2.2" />
+  </svg>
+);
+
+// MCQ Quiz questions list
+const QUIZ_QUESTIONS = [
+  {
+    question: "What is a sequence?",
+    options: [
+      "A magic spell to turn a frog into a prince 🐸",
+      "A list of steps in a special order to do a task 🌟",
+      "A type of food that Scratchy eats for dinner 🍔"
+    ],
+    correctAnswer: 1,
+    explanation: "A sequence is a list of steps in a special order to do a task! Order is very important!"
+  },
+  {
+    question: "What is an instruction?",
+    options: [
+      "A single step or command that tells Scratchy what to do 🌟",
+      "A box of crayons for coloring cards",
+      "A birthday gift from Merlin the Wizard 🎁"
+    ],
+    correctAnswer: 0,
+    explanation: "An instruction is a single step that tells someone or a computer what to do."
+  },
+  {
+    question: "If Scratchy puts on his shoes first, can he put on his socks?",
+    options: [
+      "Yes, socks easily go over shoes!",
+      "No, socks must go on BEFORE shoes! 🌟",
+      "The shoes will wiggle and eat the socks!"
+    ],
+    correctAnswer: 1,
+    explanation: "Socks first, then shoes! That is the correct sequence of steps."
+  },
+  {
+    question: "Why does Scratchy need to follow instructions in the exact sequence?",
+    options: [
+      "So he gets the rewards in the right order and completes his task! 🌟",
+      "Because he will get lost in the galaxy",
+      "So he can grow wings and fly away"
+    ],
+    correctAnswer: 0,
+    explanation: "If Scratchy eats the meal first, he won't collect the gift or cake! Correct sequence makes things work."
+  }
+];
+
 // Celebration Confetti Canvas
 const CelebrationCanvas = ({ active }) => {
   const canvasRef = useRef(null);
@@ -303,10 +373,15 @@ const CelebrationCanvas = ({ active }) => {
 };
 
 export default function App() {
+  const [theme, setTheme] = useState('night'); // 'night' | 'day'
+  const [activeTab, setActiveTab] = useState('play'); // 'play' | 'learn' | 'quiz'
+
   const [catPos, setCatPos] = useState(START_POS);
+  const [catDirection, setCatDirection] = useState('RIGHT'); // 'LEFT' | 'RIGHT'
   const [giftCollected, setGiftCollected] = useState(false);
   const [cakeCollected, setCakeCollected] = useState(false);
   const [mealCollected, setMealCollected] = useState(false);
+  const [seqIndex, setSeqIndex] = useState(0); // 0: Gift, 1: Cake, 2: Meal, 3: Completed
   
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [controlMode, setControlMode] = useState('code'); // 'code' | 'manual'
@@ -314,8 +389,40 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [activeBlockIndex, setActiveBlockIndex] = useState(-1);
+  const [errorBlockIndex, setErrorBlockIndex] = useState(-1);
   const [gameStatus, setGameStatus] = useState('playing'); // 'playing' | 'won'
-  
+  const [pawPrints, setPawPrints] = useState([]); // List of {row, col}
+  const [showHint, setShowHint] = useState(false);
+
+  // MCQ Quiz States
+  const [quizQuestionIdx, setQuizQuestionIdx] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [answerChecked, setAnswerChecked] = useState(false);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizBadge, setQuizBadge] = useState(false);
+
+  // Card Sorting States (Daily Sequence Mini-game)
+  const initialCards = [
+    { id: '1', text: 'Dig a hole in the soil 🕳️', emoji: '🕳️', order: 0 },
+    { id: '2', text: 'Plant the flower seed 🌱', emoji: '🌱', order: 1 },
+    { id: '3', text: 'Water the soil gently 🚿', emoji: '🚿', order: 2 },
+    { id: '4', text: 'Sun helps the flower grow 🌻', emoji: '🌻', order: 3 }
+  ];
+  const [sortingCards, setSortingCards] = useState([]);
+  const [isSortingSolved, setIsSortingSolved] = useState(false);
+
+  // Shuffle cards on tab switch / mount
+  useEffect(() => {
+    shuffleCards();
+  }, []);
+
+  const shuffleCards = () => {
+    const shuffled = [...initialCards].sort(() => Math.random() - 0.5);
+    setSortingCards(shuffled);
+    setIsSortingSolved(false);
+  };
+
   // Derived state to check if program is executing (running or stepping)
   const isExecuting = isRunning || currentStepIndex !== -1;
 
@@ -325,15 +432,14 @@ export default function App() {
   const [catAnimationState, setCatAnimationState] = useState(''); // 'moving' | 'bumping' | 'celebrating'
 
   // Ref to track state in intervals
-  const stateRef = useRef({ catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus });
+  const stateRef = useRef({ catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus, seqIndex });
   useEffect(() => {
-    stateRef.current = { catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus };
-  }, [catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus]);
+    stateRef.current = { catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus, seqIndex };
+  }, [catPos, giftCollected, cakeCollected, mealCollected, isRunning, gameStatus, seqIndex]);
 
   // Sparkles background coordinates
   const [sparkles, setSparkles] = useState([]);
   useEffect(() => {
-    // Generate 30 random background sparkle stars
     const newSparkles = Array.from({ length: 30 }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
@@ -347,7 +453,7 @@ export default function App() {
   // Keyboard controls for Manual Mode
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (controlMode !== 'manual' || isExecuting || gameStatus === 'won') return;
+      if (controlMode !== 'manual' || isExecuting || gameStatus === 'won' || activeTab !== 'play') return;
       
       switch (e.key) {
         case 'ArrowUp':
@@ -381,7 +487,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [controlMode, isRunning, gameStatus]);
+  }, [controlMode, isExecuting, gameStatus, activeTab]);
 
   // Play click audio helper
   const playSound = (soundFunc) => {
@@ -401,11 +507,14 @@ export default function App() {
   const isPosEqual = (p1, p2) => p1.row === p2.row && p1.col === p2.col;
 
   // Single step movement logic
-  const executeDirection = (direction) => {
-    const { catPos, giftCollected: gift, cakeCollected: cake, mealCollected: meal } = stateRef.current;
+  const executeDirection = (direction, isFromProgram = false) => {
+    const { catPos, giftCollected: gift, cakeCollected: cake, mealCollected: meal, seqIndex: currentSeq } = stateRef.current;
     const { row, col } = catPos;
     let newRow = row;
     let newCol = col;
+
+    if (direction === 'LEFT') setCatDirection('LEFT');
+    if (direction === 'RIGHT') setCatDirection('RIGHT');
 
     switch (direction) {
       case 'UP':
@@ -441,54 +550,59 @@ export default function App() {
     setCatAnimationState('moving');
     const newPos = { row: newRow, col: newCol };
     setCatPos(newPos);
+    
+    // Add to paw prints trail
+    setPawPrints(prev => [...prev, newPos]);
+
     setTimeout(() => {
       setCatAnimationState('');
     }, 250);
 
     // Sequence Checkpoints validation
     if (isPosEqual(newPos, GIFT_POS)) {
-      if (!gift) {
+      if (currentSeq === 0) {
         setGiftCollected(true);
+        setSeqIndex(1);
         playSound(sound.collect);
         setWizardState('🧙‍♂️');
-        setGuideText(`Awesome! 🎁 You found the Gift at A1! Now, let's find the Cake at C3 next!`);
+        setGuideText(`Awesome! 🎁 You collected the Gift at A1! Next, let's find the Cake 🎂 at C3!`);
       }
     } 
     else if (isPosEqual(newPos, CAKE_POS)) {
-      if (!cake) {
-        if (gift) {
-          setCakeCollected(true);
-          playSound(sound.collect);
-          setWizardState('🧙‍♂️');
-          setGuideText(`Yum! 🎂 That cake at C3 is delicious! Last step: let's go finish the Meal at D1!`);
-        } else {
-          // Out of sequence! DO NOT reset progress. Just tell them.
-          playSound(sound.error);
-          setWizardState('🧙‍♀️');
-          setGuideText(`You found the Cake at C3! But wait 🚨, we must collect the Gift 🎁 first! Keep searching!`);
-          return true;
+      if (currentSeq === 1) {
+        setCakeCollected(true);
+        setSeqIndex(2);
+        playSound(sound.collect);
+        setWizardState('🧙‍♂️');
+        setGuideText(`Yum! 🎂 That cake at C3 is delicious! Last step: let's go eat the Meal 🍔 at D1!`);
+      } else if (currentSeq < 1) {
+        playSound(sound.error);
+        setWizardState('🧙‍♀️');
+        setGuideText(`Hold on! 🚨 Scratchy must collect the Gift 🎁 first! Check your sequence!`);
+        if (isFromProgram) {
+          return 'HALT_SEQUENCE_ERROR';
         }
       }
     } 
     else if (isPosEqual(newPos, MEAL_POS)) {
-      if (!meal) {
-        if (gift && cake) {
-          setMealCollected(true);
-          setGameStatus('won');
-          setCatAnimationState('celebrating');
-          playSound(sound.win);
-          setWizardState('🧙‍♂️');
-          setGuideText(`Magic completed! 🌟 Scratchy completed the Sequence Task successfully! 🌈🎉`);
+      if (currentSeq === 2) {
+        setMealCollected(true);
+        setSeqIndex(3);
+        setGameStatus('won');
+        setCatAnimationState('celebrating');
+        playSound(sound.win);
+        setWizardState('🧙‍♂️');
+        setGuideText(`Magic completed! 🌟 Scratchy completed the Sequence Task successfully! 🍔🎉`);
+      } else if (currentSeq < 2) {
+        playSound(sound.error);
+        setWizardState('🧙‍♀️');
+        if (currentSeq === 0) {
+          setGuideText(`Wait! 🚨 Scratchy needs to collect the Gift 🎁 first, then the Cake 🎂, before eating the Meal!`);
         } else {
-          // Out of sequence! DO NOT reset progress. Just tell them.
-          playSound(sound.error);
-          setWizardState('🧙‍♀️');
-          if (!gift) {
-            setGuideText(`You reached the Meal at D1! But we must collect the Gift 🎁 first!`);
-          } else {
-            setGuideText(`You reached the Meal at D1! But we must eat the Cake 🎂 first!`);
-          }
-          return true;
+          setGuideText(`Not yet! 🚨 Scratchy must eat the Cake 🎂 before eating the Meal!`);
+        }
+        if (isFromProgram) {
+          return 'HALT_SEQUENCE_ERROR';
         }
       }
     }
@@ -499,9 +613,9 @@ export default function App() {
   const addBlockToQueue = (dir) => {
     if (isRunning || gameStatus === 'won') return;
     playSound(sound.click);
+    setErrorBlockIndex(-1);
     setProgramQueue([...programQueue, dir]);
     
-    // Friendly reminder text
     if (programQueue.length === 0) {
       setGuideText(`Block added! Click more blocks to build a path to the Gift 🎁, Cake 🎂, and Meal 🍔.`);
     }
@@ -511,6 +625,7 @@ export default function App() {
   const removeBlockFromQueue = (index) => {
     if (isRunning || gameStatus === 'won') return;
     playSound(sound.click);
+    setErrorBlockIndex(-1);
     const newQueue = [...programQueue];
     newQueue.splice(index, 1);
     setProgramQueue(newQueue);
@@ -521,6 +636,7 @@ export default function App() {
     playSound(sound.click);
     setProgramQueue([]);
     setActiveBlockIndex(-1);
+    setErrorBlockIndex(-1);
     setGuideText(`Program cleared! Snap together some blue, orange, pink and green blocks!`);
   };
 
@@ -530,20 +646,19 @@ export default function App() {
     
     playSound(sound.click);
     setIsRunning(true);
-    setCurrentStepIndex(-1); // Cancel stepping mode
+    setCurrentStepIndex(-1);
     setActiveBlockIndex(0);
+    setErrorBlockIndex(-1);
     setWizardState('🧙‍♂️');
     setGuideText(`Running program... 🚀 Watch Scratchy follow your sequence!`);
     
     let index = 0;
     
     const executeStep = () => {
-      // Stop execution if stopped via Reset or general state change
       if (!stateRef.current.isRunning) {
         return;
       }
 
-      // Stop execution if game was won during run
       if (stateRef.current.gameStatus === 'won') {
         setIsRunning(false);
         setActiveBlockIndex(-1);
@@ -551,13 +666,11 @@ export default function App() {
       }
 
       if (index >= programQueue.length) {
-        // Queue finished executing
         setIsRunning(false);
         setActiveBlockIndex(-1);
         
-        // Check if won, if not warn
         setTimeout(() => {
-          const { giftCollected: g, cakeCollected: c, mealCollected: m, gameStatus: status } = stateRef.current;
+          const { gameStatus: status } = stateRef.current;
           if (status !== 'won') {
             playSound(sound.error);
             setWizardState('🧙‍♀️');
@@ -569,17 +682,26 @@ export default function App() {
 
       setActiveBlockIndex(index);
       const currentDir = programQueue[index];
-      const success = executeDirection(currentDir);
+      const success = executeDirection(currentDir, true);
 
-      // If collision or sequence error stopped it
+      if (success === 'HALT_SEQUENCE_ERROR') {
+        setIsRunning(false);
+        setErrorBlockIndex(index);
+        setActiveBlockIndex(-1);
+        playSound(sound.incorrect);
+        setGuideText(`Oops! 🙀 Sequence broken at block ${index + 1}! Scratchy tried to collect items out of order! Click Reset and fix the blocks.`);
+        return;
+      }
+
       if (!success) {
         setIsRunning(false);
+        setErrorBlockIndex(index);
         setActiveBlockIndex(-1);
         return;
       }
 
       index++;
-      setTimeout(executeStep, 800); // 800ms delay between actions to look step-by-step
+      setTimeout(executeStep, 800);
     };
 
     setTimeout(executeStep, 400);
@@ -590,10 +712,10 @@ export default function App() {
     if (programQueue.length === 0 || isExecuting || gameStatus === 'won') return;
 
     playSound(sound.click);
+    setErrorBlockIndex(-1);
     
     let nextIndex = currentStepIndex + 1;
     
-    // If we haven't started stepping yet, reset cat position to start
     if (currentStepIndex === -1) {
       resetGameProgress();
       nextIndex = 0;
@@ -605,24 +727,32 @@ export default function App() {
     setActiveBlockIndex(nextIndex);
 
     const currentDir = programQueue[nextIndex];
-    const success = executeDirection(currentDir);
+    const success = executeDirection(currentDir, true);
+
+    if (success === 'HALT_SEQUENCE_ERROR') {
+      setCurrentStepIndex(-1);
+      setActiveBlockIndex(-1);
+      setErrorBlockIndex(nextIndex);
+      playSound(sound.incorrect);
+      setGuideText(`Oops! 🙀 Sequence broken at block ${nextIndex + 1}! Scratchy tried to collect items out of order! Click Reset and fix the blocks.`);
+      return;
+    }
 
     if (!success || nextIndex === programQueue.length - 1) {
-      // Program ended or hit boundary
       setTimeout(() => {
         setCurrentStepIndex(-1);
         setActiveBlockIndex(-1);
         
         const { gameStatus: status } = stateRef.current;
         if (status === 'won') {
-          return; // Handled by executeDirection
+          return;
         }
         
         if (!success) {
-          return; // Hit border
+          setErrorBlockIndex(nextIndex);
+          return;
         }
 
-        // Finished last step and not won
         playSound(sound.error);
         setWizardState('🧙‍♀️');
         setGuideText(`Finished all blocks, but we didn't complete the sequence! Try rearranging your blocks. 🪄`);
@@ -636,7 +766,11 @@ export default function App() {
     setGiftCollected(false);
     setCakeCollected(false);
     setMealCollected(false);
+    setSeqIndex(0);
+    setCatDirection('RIGHT');
     setCatAnimationState('');
+    setPawPrints([]);
+    setErrorBlockIndex(-1);
   };
 
   // Full reset button click
@@ -651,30 +785,145 @@ export default function App() {
     setGuideText(`Reset completed! Help Scratchy collect: Gift 🎁 ➔ Cake 🎂 ➔ Meal 🍔!`);
   };
 
+  // Card Sorting daily sequencer shift
+  const shiftCard = (index, dir) => {
+    if (isSortingSolved) return;
+    playSound(sound.flip);
+    const newIdx = dir === 'left' ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= sortingCards.length) return;
+
+    const updated = [...sortingCards];
+    const temp = updated[index];
+    updated[index] = updated[newIdx];
+    updated[newIdx] = temp;
+    setSortingCards(updated);
+
+    // Verify order
+    const isSorted = updated.every((c, i) => c.order === i);
+    if (isSorted) {
+      setIsSortingSolved(true);
+      playSound(sound.win);
+      setWizardState('🧙‍♂️');
+      setGuideText(`Magnificent! 🌻 You put the flower planting instructions in the correct sequence! You are ready to code the cat!`);
+    }
+  };
+
+  // MCQ Quiz Handlers
+  const handleAnswerSelect = (optIdx) => {
+    if (answerChecked) return;
+    playSound(sound.click);
+    setSelectedAnswer(optIdx);
+  };
+
+  const checkQuizAnswer = () => {
+    if (selectedAnswer === null || answerChecked) return;
+    const currentQuestion = QUIZ_QUESTIONS[quizQuestionIdx];
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+    setAnswerChecked(true);
+
+    if (isCorrect) {
+      playSound(sound.correct);
+      setQuizScore(prev => prev + 1);
+      setWizardState('🧙‍♂️');
+      setGuideText(`Spot on! 🌟 ${currentQuestion.explanation}`);
+    } else {
+      playSound(sound.incorrect);
+      setWizardState('🧙‍♀️');
+      setGuideText(`Not quite! 🪄 Let's see: socks must go on before shoes, and a sequence is steps in order!`);
+    }
+  };
+
+  const nextQuizQuestion = () => {
+    setSelectedAnswer(null);
+    setAnswerChecked(false);
+    if (quizQuestionIdx < QUIZ_QUESTIONS.length - 1) {
+      playSound(sound.click);
+      setQuizQuestionIdx(prev => prev + 1);
+      setWizardState('🧙‍♂️');
+      setGuideText(`Here is the next question! Keep thinking about sequencing!`);
+    } else {
+      playSound(sound.win);
+      setQuizCompleted(true);
+      if (quizScore >= 3) {
+        setQuizBadge(true);
+      }
+      setWizardState('🧙‍♂️');
+      setGuideText(`Congratulations on completing the Quiz! You got a score of ${quizScore}/${QUIZ_QUESTIONS.length}!`);
+    }
+  };
+
+  const restartQuiz = () => {
+    playSound(sound.click);
+    setQuizQuestionIdx(0);
+    setSelectedAnswer(null);
+    setAnswerChecked(false);
+    setQuizScore(0);
+    setQuizCompleted(false);
+    setQuizBadge(false);
+    setWizardState('🧙‍♂️');
+    setGuideText(`Welcome back to the Quiz! Let's get all stars!`);
+  };
+
+  // Magic Hint toggle
+  const toggleHint = () => {
+    playSound(sound.click);
+    setShowHint(!showHint);
+    if (!showHint) {
+      let nextTarget = "A1";
+      if (seqIndex === 1) nextTarget = "C3";
+      if (seqIndex === 2) nextTarget = "D1";
+      setWizardState('🧙‍♂️');
+      setGuideText(`Abracadabra! 🪄 I've highlighted the cell you need to reach next: ${nextTarget}!`);
+    } else {
+      setWizardState('🧙‍♂️');
+      setGuideText(`Hint hidden! Let's see if you can solve the path by yourself!`);
+    }
+  };
+
+  // Theme Toggler
+  const toggleTheme = () => {
+    playSound(sound.click);
+    const newTheme = theme === 'night' ? 'day' : 'night';
+    setTheme(newTheme);
+    setGuideText(`Theme changed to ${newTheme === 'day' ? 'Day Dream Mode ☀️' : 'Magic Night Mode 🌌'}!`);
+  };
+
   return (
-    <div className="app-container">
-      {/* Background Sparkles */}
-      <div className="sparkles-bg">
-        {sparkles.map((s) => (
-          <div 
-            key={s.id} 
-            className="sparkle" 
-            style={{ 
-              left: s.left, 
-              top: s.top, 
-              animationDelay: s.delay, 
-              fontSize: s.size 
-            }}
-          >
-            ✦
-          </div>
-        ))}
-      </div>
+    <div className={`app-container ${theme === 'day' ? 'day-dream' : 'magic-night'}`}>
+      
+      {/* Background Sparkles for Night Mode */}
+      {theme === 'night' && (
+        <div className="sparkles-bg">
+          {sparkles.map((s) => (
+            <div 
+              key={s.id} 
+              className="sparkle" 
+              style={{ 
+                left: s.left, 
+                top: s.top, 
+                animationDelay: s.delay, 
+                fontSize: s.size 
+              }}
+            >
+              ✦
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Theme Toggler top-left */}
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme}
+        title="Toggle Day/Night Theme"
+      >
+        {theme === 'night' ? <Sun size={24} /> : <Moon size={24} />}
+      </button>
 
       {/* Confetti Celebration */}
-      <CelebrationCanvas active={gameStatus === 'won'} />
+      <CelebrationCanvas active={gameStatus === 'won' || isSortingSolved || (quizCompleted && quizBadge)} />
 
-      {/* Mute/Unmute */}
+      {/* Mute/Unmute top-right */}
       <button 
         className="sound-toggle" 
         onClick={() => setSoundEnabled(!soundEnabled)}
@@ -688,325 +937,605 @@ export default function App() {
         <h1>
           <span>✨</span> Sequence Magic <span>✨</span>
         </h1>
-        <p>Help Scratchy the Cat find his treats in the perfect sequence!</p>
+        <p>Learn computational thinking by placing instructions in the perfect order!</p>
       </header>
 
-      {/* Main Responsive Layout */}
-      <main className="main-content">
-        
-        {/* Left Column: Narrative Owl & Grid Board */}
-        <section className="game-area">
+      {/* Tab Selector Hub */}
+      <div className="app-tabs">
+        <button 
+          className={`app-tab-btn ${activeTab === 'play' ? 'active' : ''}`}
+          onClick={() => {
+            playSound(sound.click);
+            setActiveTab('play');
+            handleFullReset();
+          }}
+        >
+          <Compass size={20} /> Play Game
+        </button>
+        <button 
+          className={`app-tab-btn ${activeTab === 'learn' ? 'active' : ''}`}
+          onClick={() => {
+            playSound(sound.click);
+            setActiveTab('learn');
+            shuffleCards();
+          }}
+        >
+          <BookOpen size={20} /> Learning Zone
+        </button>
+        <button 
+          className={`app-tab-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+          onClick={() => {
+            playSound(sound.click);
+            setActiveTab('quiz');
+            restartQuiz();
+          }}
+        >
+          <Award size={20} /> Magic Quiz
+        </button>
+      </div>
+
+      {/* TAB 1: MAIN GAME AREA */}
+      {activeTab === 'play' && (
+        <main className="main-content">
           
-          {/* Guide Bubble Panel */}
-          <div className="glass-panel wizard-guide" style={{ width: '100%', boxSizing: 'border-box' }}>
-            <div className="wizard-avatar">{wizardState}</div>
-            <div className="wizard-speech">
-              <strong>Wizard Merlin:</strong> "{guideText}"
-            </div>
-          </div>
-
-          {/* Grid Container with Axis Labels */}
-          <div className="grid-container-with-axes">
-            {/* Top row: Column labels A, B, C, D */}
-            <div className="axis-label-corner"></div>
-            <div className="axis-labels-cols">
-              <div className="axis-label-col">A</div>
-              <div className="axis-label-col">B</div>
-              <div className="axis-label-col">C</div>
-              <div className="axis-label-col">D</div>
-            </div>
-
-            {/* Left column: Row labels 1, 2, 3, 4 */}
-            <div className="axis-labels-rows">
-              <div className="axis-label-row">1</div>
-              <div className="axis-label-row">2</div>
-              <div className="axis-label-row">3</div>
-              <div className="axis-label-row">4</div>
-            </div>
-
-            {/* Interactive 4x4 Grid */}
-            <div className="grid-board-wrapper">
-              <div className="grid-board">
-                {Array.from({ length: ROWS_COUNT }).map((_, rowIndex) => (
-                  <React.Fragment key={rowIndex}>
-                    {Array.from({ length: COLS_COUNT }).map((_, colIndex) => {
-                      const currentCell = { row: rowIndex, col: colIndex };
-                      const isEven = (rowIndex + colIndex) % 2 === 0;
-                      const coordName = getCellCoordinate(rowIndex, colIndex);
-
-                      // Elements inside cells
-                      const isCatHere = isPosEqual(catPos, currentCell);
-                      const isGiftHere = isPosEqual(GIFT_POS, currentCell);
-                      const isCakeHere = isPosEqual(CAKE_POS, currentCell);
-                      const isMealHere = isPosEqual(MEAL_POS, currentCell);
-
-                      return (
-                        <div 
-                          key={colIndex} 
-                          className={`grid-cell ${isEven ? 'even-cell' : 'odd-cell'}`}
-                          data-coord={coordName}
-                        >
-                          {/* Render Cat */}
-                          {isCatHere && (
-                            <CatSvg animationState={catAnimationState} />
-                          )}
-
-                          {/* Render Targets */}
-                          {isGiftHere && (
-                            <GiftSprite collected={giftCollected} />
-                          )}
-
-                          {isCakeHere && (
-                            <CakeSprite collected={cakeCollected} />
-                          )}
-
-                          {isMealHere && (
-                            <MealSprite collected={mealCollected} />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
+          {/* Left Column: Speech Bubble & Grid Board */}
+          <section className="game-area">
+            
+            {/* Guide Bubble Panel */}
+            <div className="glass-panel wizard-guide" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <div className="wizard-avatar">{wizardState}</div>
+              <div className="wizard-speech">
+                <strong>Wizard Merlin:</strong> "{guideText}"
               </div>
             </div>
-          </div>
 
-          {/* Grid Reference Map Guide for Grade 2 */}
-          <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', gap: '1rem', marginTop: '0.2rem' }}>
-            <span>🏁 Cat Start: <strong>A4</strong></span>
-            <span>🎁 Gift: <strong>A1</strong></span>
-            <span>🎂 Cake: <strong>C3</strong></span>
-            <span>🍔 Meal: <strong>D1</strong></span>
-          </div>
-
-        </section>
-
-        {/* Right Column: Code workspace & D-pad */}
-        <section className="sidebar-panel">
-
-          {/* Checklist Panel */}
-          <div className="glass-panel">
-            <h3 className="checklist-title">
-              <CheckCircle size={20} className="text-emerald-400" /> Sequence Checklist
-            </h3>
-            <div className="checklist">
-              <div className={`checklist-item ${giftCollected ? 'done' : ''}`}>
-                <div className="checklist-checkbox">
-                  {giftCollected ? '✓' : '1'}
-                </div>
-                <span>Collect the Gift box 🎁 (at <strong>A1</strong>)</span>
+            {/* Grid Container with Axis Labels */}
+            <div className="grid-container-with-axes">
+              {/* Column labels A, B, C, D */}
+              <div className="axis-label-corner"></div>
+              <div className="axis-labels-cols">
+                <div className="axis-label-col">A</div>
+                <div className="axis-label-col">B</div>
+                <div className="axis-label-col">C</div>
+                <div className="axis-label-col">D</div>
               </div>
-              <div className={`checklist-item ${cakeCollected ? 'done' : ''}`}>
-                <div className="checklist-checkbox">
-                  {cakeCollected ? '✓' : '2'}
-                </div>
-                <span>Eat the birthday Cake 🎂 (at <strong>C3</strong>)</span>
+
+              {/* Row labels 1, 2, 3, 4 */}
+              <div className="axis-labels-rows">
+                <div className="axis-label-row">1</div>
+                <div className="axis-label-row">2</div>
+                <div className="axis-label-row">3</div>
+                <div className="axis-label-row">4</div>
               </div>
-              <div className={`checklist-item ${mealCollected ? 'done' : ''}`}>
-                <div className="checklist-checkbox">
-                  {mealCollected ? '✓' : '3'}
+
+              {/* Interactive 4x4 Grid */}
+              <div className="grid-board-wrapper">
+                <div className="grid-board">
+                  {Array.from({ length: ROWS_COUNT }).map((_, rowIndex) => (
+                    <React.Fragment key={rowIndex}>
+                      {Array.from({ length: COLS_COUNT }).map((_, colIndex) => {
+                        const currentCell = { row: rowIndex, col: colIndex };
+                        const isEven = (rowIndex + colIndex) % 2 === 0;
+                        const coordName = getCellCoordinate(rowIndex, colIndex);
+
+                        const isCatHere = isPosEqual(catPos, currentCell);
+                        const isGiftHere = isPosEqual(GIFT_POS, currentCell);
+                        const isCakeHere = isPosEqual(CAKE_POS, currentCell);
+                        const isMealHere = isPosEqual(MEAL_POS, currentCell);
+                        
+                        // Check if this cell is part of the fading footprints trail
+                        const hasPawPrint = pawPrints.some(p => isPosEqual(p, currentCell)) && !isCatHere;
+
+                        // Check if this cell is the next cell to show a hint for
+                        let isNextTargetCell = false;
+                        if (showHint) {
+                          if (seqIndex === 0 && isGiftHere) isNextTargetCell = true;
+                          if (seqIndex === 1 && isCakeHere) isNextTargetCell = true;
+                          if (seqIndex === 2 && isMealHere) isNextTargetCell = true;
+                        }
+
+                        return (
+                          <div 
+                            key={colIndex} 
+                            className={`grid-cell ${isEven ? 'even-cell' : 'odd-cell'}`}
+                            data-coord={coordName}
+                          >
+                            {/* Path Hint Star */}
+                            {isNextTargetCell && (
+                              <div className="hint-star-cell">✦</div>
+                            )}
+
+                            {/* Footprint Paw Prints */}
+                            {hasPawPrint && (
+                              <PawPrintSvg />
+                            )}
+
+                            {/* Render Cat */}
+                            {isCatHere && (
+                              <CatSvg animationState={catAnimationState} direction={catDirection} />
+                            )}
+
+                            {/* Render Targets */}
+                            {isGiftHere && (
+                              <GiftSprite collected={giftCollected} />
+                            )}
+
+                            {isCakeHere && (
+                              <CakeSprite collected={cakeCollected} />
+                            )}
+
+                            {isMealHere && (
+                              <MealSprite collected={mealCollected} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
                 </div>
-                <span>Eat the delicious Meal Platter 🍔 (at <strong>D1</strong>)</span>
               </div>
             </div>
-          </div>
 
-          {/* Controls Panel */}
-          <div className="glass-panel">
-            <h3 className="workspace-title">
-              <GraduationCap size={22} /> Choose Your Controls
-            </h3>
-
-            {/* Mode Switch Tabs */}
-            <div className="control-mode-tabs">
-              <button 
-                className={`tab-btn ${controlMode === 'code' ? 'active' : ''}`}
-                onClick={() => {
-                  playSound(sound.click);
-                  setControlMode('code');
-                  resetGameProgress();
-                }}
-                disabled={isExecuting}
-              >
-                <Code size={18} /> Block Coding
-              </button>
-              <button 
-                className={`tab-btn ${controlMode === 'manual' ? 'active' : ''}`}
-                onClick={() => {
-                  playSound(sound.click);
-                  setControlMode('manual');
-                  resetGameProgress();
-                }}
-                disabled={isExecuting}
-              >
-                <Joystick size={18} /> Manual D-Pad
-              </button>
+            {/* Grid Coordinates Guide */}
+            <div style={{ fontSize: '0.9rem', opacity: 0.8, display: 'flex', gap: '1.25rem', marginTop: '0.2rem', fontWeight: 600 }}>
+              <span>🏁 Start: <strong>A4</strong></span>
+              <span>🎁 Gift: <strong>A1</strong></span>
+              <span>🎂 Cake: <strong>C3</strong></span>
+              <span>🍔 Meal: <strong>D1</strong></span>
             </div>
 
-            {/* BLOCK CODING INTERFACE */}
-            {controlMode === 'code' && (
-              <div>
-                <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.9rem', color: '#cbd5e1' }}>
-                  Click blocks below to write a movement program for the cat.
-                </p>
+          </section>
 
-                {/* Blocks Palette */}
-                <div className="coding-blocks-palette">
-                  <button 
-                    className="block-btn up-block"
-                    onClick={() => addBlockToQueue('UP')}
-                    disabled={isExecuting || gameStatus === 'won'}
-                  >
-                    <ArrowUp size={16} /> Move Up
-                  </button>
-                  <button 
-                    className="block-btn down-block"
-                    onClick={() => addBlockToQueue('DOWN')}
-                    disabled={isExecuting || gameStatus === 'won'}
-                  >
-                    <ArrowDown size={16} /> Move Down
-                  </button>
-                  <button 
-                    className="block-btn left-block"
-                    onClick={() => addBlockToQueue('LEFT')}
-                    disabled={isExecuting || gameStatus === 'won'}
-                  >
-                    <ArrowLeft size={16} /> Move Left
-                  </button>
-                  <button 
-                    className="block-btn right-block"
-                    onClick={() => addBlockToQueue('RIGHT')}
-                    disabled={isExecuting || gameStatus === 'won'}
-                  >
-                    <ArrowRight size={16} /> Move Right
-                  </button>
-                </div>
+          {/* Right Column: Code workspace & D-pad */}
+          <section className="sidebar-panel">
 
-                {/* Queue Display */}
-                <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Your Sequence Code:</span>
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>({programQueue.length} steps)</span>
+            {/* Checklist Panel */}
+            <div className="glass-panel">
+              <h3 className="checklist-title">
+                <CheckCircle size={20} className="text-emerald-400" /> Sequence Checklist
+              </h3>
+              <div className="checklist">
+                <div className={`checklist-item ${giftCollected ? 'done' : ''}`}>
+                  <div className="checklist-checkbox">
+                    {giftCollected ? '✓' : '1'}
+                  </div>
+                  <span>Collect the Gift box 🎁 (at <strong>A1</strong>)</span>
                 </div>
-                <div className="program-queue-container">
-                  {programQueue.length === 0 ? (
-                    <div className="queue-empty-text">
-                      No blocks yet! Click the colorful buttons above.
-                    </div>
-                  ) : (
-                    programQueue.map((dir, index) => (
-                      <div 
-                        key={index} 
-                        className={`queue-block ${dir} ${activeBlockIndex === index ? 'active-block' : ''}`}
-                        title="Click to remove block"
-                        onClick={() => removeBlockFromQueue(index)}
-                      >
-                        {dir === 'UP' && <ArrowUp size={14} />}
-                        {dir === 'DOWN' && <ArrowDown size={14} />}
-                        {dir === 'LEFT' && <ArrowLeft size={14} />}
-                        {dir === 'RIGHT' && <ArrowRight size={14} />}
-                        <span>{dir}</span>
-                        <span className="queue-arrow">×</span>
+                <div className={`checklist-item ${cakeCollected ? 'done' : ''}`}>
+                  <div className="checklist-checkbox">
+                    {cakeCollected ? '✓' : '2'}
+                  </div>
+                  <span>Eat the birthday Cake 🎂 (at <strong>C3</strong>)</span>
+                </div>
+                <div className={`checklist-item ${mealCollected ? 'done' : ''}`}>
+                  <div className="checklist-checkbox">
+                    {mealCollected ? '✓' : '3'}
+                  </div>
+                  <span>Eat the delicious Meal Platter 🍔 (at <strong>D1</strong>)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Controls Panel */}
+            <div className="glass-panel">
+              <h3 className="workspace-title">
+                <GraduationCap size={22} /> Choose Your Controls
+              </h3>
+
+              {/* Mode Switch Tabs */}
+              <div className="control-mode-tabs">
+                <button 
+                  className={`tab-btn ${controlMode === 'code' ? 'active' : ''}`}
+                  onClick={() => {
+                    playSound(sound.click);
+                    setControlMode('code');
+                    resetGameProgress();
+                  }}
+                  disabled={isExecuting}
+                >
+                  <Code size={18} /> Block Coding
+                </button>
+                <button 
+                  className={`tab-btn ${controlMode === 'manual' ? 'active' : ''}`}
+                  onClick={() => {
+                    playSound(sound.click);
+                    setControlMode('manual');
+                    resetGameProgress();
+                  }}
+                  disabled={isExecuting}
+                >
+                  <Joystick size={18} /> Manual D-Pad
+                </button>
+              </div>
+
+              {/* BLOCK CODING INTERFACE */}
+              {controlMode === 'code' && (
+                <div>
+                  <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.9rem', opacity: 0.9 }}>
+                    Click arrows below to snap together instructions.
+                  </p>
+
+                  {/* Blocks Palette */}
+                  <div className="coding-blocks-palette">
+                    <button 
+                      className="block-btn up-block btn-bubble"
+                      onClick={() => addBlockToQueue('UP')}
+                      disabled={isExecuting || gameStatus === 'won'}
+                    >
+                      <ArrowUp size={16} /> Move Up
+                    </button>
+                    <button 
+                      className="block-btn down-block btn-bubble"
+                      onClick={() => addBlockToQueue('DOWN')}
+                      disabled={isExecuting || gameStatus === 'won'}
+                    >
+                      <ArrowDown size={16} /> Move Down
+                    </button>
+                    <button 
+                      className="block-btn left-block btn-bubble"
+                      onClick={() => addBlockToQueue('LEFT')}
+                      disabled={isExecuting || gameStatus === 'won'}
+                    >
+                      <ArrowLeft size={16} /> Move Left
+                    </button>
+                    <button 
+                      className="block-btn right-block btn-bubble"
+                      onClick={() => addBlockToQueue('RIGHT')}
+                      disabled={isExecuting || gameStatus === 'won'}
+                    >
+                      <ArrowRight size={16} /> Move Right
+                    </button>
+                  </div>
+
+                  {/* Queue Display */}
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Your Instructions:</span>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>({programQueue.length} steps)</span>
+                  </div>
+                  
+                  <div className="program-queue-container">
+                    {programQueue.length === 0 ? (
+                      <div className="queue-empty-text">
+                        No blocks! Click the colorful buttons above to snap blocks.
                       </div>
-                    ))
+                    ) : (
+                      programQueue.map((dir, idx) => {
+                        let isError = errorBlockIndex === idx;
+                        let isActive = activeBlockIndex === idx;
+                        let blockClass = `queue-block ${dir} ${isActive ? 'active-block' : ''}`;
+                        let blockStyle = {};
+                        if (isError) {
+                          blockStyle = { background: '#dc2626', border: '3px solid #fecaca', boxShadow: '0 0 15px #dc2626' };
+                        }
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            className={blockClass}
+                            style={blockStyle}
+                            title="Click to remove block"
+                            onClick={() => removeBlockFromQueue(idx)}
+                          >
+                            {dir === 'UP' && <ArrowUp size={14} />}
+                            {dir === 'DOWN' && <ArrowDown size={14} />}
+                            {dir === 'LEFT' && <ArrowLeft size={14} />}
+                            {dir === 'RIGHT' && <ArrowRight size={14} />}
+                            <span>{dir}</span>
+                            <span className="queue-arrow">×</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Coding Action buttons */}
+                  <div className="action-controls">
+                    <button 
+                      className="btn-action btn-run btn-bubble"
+                      onClick={runProgram}
+                      disabled={isRunning || currentStepIndex !== -1 || programQueue.length === 0 || gameStatus === 'won'}
+                    >
+                      <Play size={18} fill="currentColor" /> Run
+                    </button>
+                    <button 
+                      className="btn-action btn-step btn-bubble"
+                      onClick={stepProgram}
+                      disabled={isRunning || programQueue.length === 0 || gameStatus === 'won'}
+                    >
+                      <SkipForward size={18} /> Step
+                    </button>
+                    <button 
+                      className="btn-action btn-clear btn-bubble"
+                      onClick={clearProgramQueue}
+                      disabled={isExecuting || programQueue.length === 0}
+                    >
+                      <Trash2 size={16} /> Clear
+                    </button>
+                    <button 
+                      className="btn-action btn-reset btn-bubble"
+                      onClick={handleFullReset}
+                    >
+                      <RotateCcw size={16} /> Reset
+                    </button>
+                  </div>
+
+                  {/* Hint helper wand */}
+                  <button 
+                    className="btn-action btn-magic-wand btn-bubble"
+                    onClick={toggleHint}
+                    style={{ width: '100%', marginTop: '0.6rem', padding: '0.6rem' }}
+                  >
+                    <span>🪄</span> {showHint ? "Hide Magic Hint" : "Show Magic Hint"}
+                  </button>
+
+                </div>
+              )}
+
+              {/* MANUAL CONTROLLER INTERFACE */}
+              {controlMode === 'manual' && (
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.9rem', opacity: 0.9 }}>
+                    Click arrows below or use the <strong>Arrow Keys</strong> on your keyboard to move Scratchy!
+                  </p>
+
+                  {/* D-Pad Buttons */}
+                  <div className="d-pad-container">
+                    <div className="d-pad-row">
+                      <button 
+                        className="d-btn btn-bubble" 
+                        onClick={() => executeDirection('UP')}
+                        disabled={isExecuting || gameStatus === 'won'}
+                      >
+                        <ArrowUp size={24} />
+                      </button>
+                    </div>
+                    <div className="d-pad-row">
+                      <button 
+                        className="d-btn btn-bubble" 
+                        onClick={() => executeDirection('LEFT')}
+                        disabled={isExecuting || gameStatus === 'won'}
+                      >
+                        <ArrowLeft size={24} />
+                      </button>
+                      <div className="d-btn-center"></div>
+                      <button 
+                        className="d-btn btn-bubble" 
+                        onClick={() => executeDirection('RIGHT')}
+                        disabled={isExecuting || gameStatus === 'won'}
+                      >
+                        <ArrowRight size={24} />
+                      </button>
+                    </div>
+                    <div className="d-pad-row">
+                      <button 
+                        className="d-btn btn-bubble" 
+                        onClick={() => executeDirection('DOWN')}
+                        disabled={isExecuting || gameStatus === 'won'}
+                      >
+                        <ArrowDown size={24} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Manual reset */}
+                  <button 
+                    className="btn-action btn-reset btn-bubble" 
+                    onClick={handleFullReset} 
+                    style={{ width: '100%', maxWidth: '200px', margin: '0 auto' }}
+                  >
+                    <RotateCcw size={16} /> Reset Position
+                  </button>
+                </div>
+              )}
+
+            </div>
+
+          </section>
+
+        </main>
+      )}
+
+      {/* TAB 2: LEARNING ZONE (CARD SORTING GAME) */}
+      {activeTab === 'learn' && (
+        <main style={{ width: '100%', maxWidth: '900px', margin: '2rem auto 0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          <div className="glass-panel" style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '2rem', margin: '0 0 0.5rem 0', fontWeight: 800 }}>🌱 Flower Sequencer Garden</h2>
+            <p style={{ fontSize: '1.1rem', margin: 0, opacity: 0.9 }}>
+              <strong>What is a Sequence?</strong> A sequence is a list of steps in a special order!
+              <br />
+              If you water dirt before placing the seed, nothing grows! Let's arrange these steps in the correct order.
+            </p>
+          </div>
+
+          <div className="card-sorting-wrapper">
+            <div className="cards-container">
+              {sortingCards.map((card, idx) => (
+                <div 
+                  key={card.id} 
+                  className={`sorting-card ${isSortingSolved ? 'card-correct' : ''}`}
+                >
+                  <div className="card-number-badge">{idx + 1}</div>
+                  <div className="card-illustration">{card.emoji}</div>
+                  <div className="card-text">{card.text}</div>
+                  
+                  {/* Shift Buttons */}
+                  {!isSortingSolved && (
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
+                      <button 
+                        className="btn-action btn-bubble"
+                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', background: '#e2e8f0', color: '#1e293b' }}
+                        disabled={idx === 0}
+                        onClick={() => shiftCard(idx, 'left')}
+                      >
+                        ◀
+                      </button>
+                      <button 
+                        className="btn-action btn-bubble"
+                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', background: '#e2e8f0', color: '#1e293b' }}
+                        disabled={idx === sortingCards.length - 1}
+                        onClick={() => shiftCard(idx, 'right')}
+                      >
+                        ▶
+                      </button>
+                    </div>
                   )}
                 </div>
+              ))}
+            </div>
 
-                {/* Coding Action buttons */}
-                <div className="action-controls">
-                  <button 
-                    className="btn-action btn-run"
-                    onClick={runProgram}
-                    disabled={isRunning || currentStepIndex !== -1 || programQueue.length === 0 || gameStatus === 'won'}
-                  >
-                    <Play size={18} fill="currentColor" /> Run
-                  </button>
-                  <button 
-                    className="btn-action btn-step"
-                    onClick={stepProgram}
-                    disabled={isRunning || programQueue.length === 0 || gameStatus === 'won'}
-                  >
-                    <SkipForward size={18} /> Step
-                  </button>
-                  <button 
-                    className="btn-action btn-clear"
-                    onClick={clearProgramQueue}
-                    disabled={isExecuting || programQueue.length === 0}
-                  >
-                    <Trash2 size={16} /> Clear
-                  </button>
-                  <button 
-                    className="btn-action btn-reset"
-                    onClick={handleFullReset}
-                  >
-                    <RotateCcw size={16} /> Reset
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* MANUAL CONTROLLER INTERFACE */}
-            {controlMode === 'manual' && (
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.9rem', color: '#cbd5e1' }}>
-                  Click the arrows below or use the <strong>Arrow Keys</strong> on your keyboard to move Scratchy!
-                </p>
-
-                {/* D-Pad Buttons */}
-                <div className="d-pad-container">
-                  <div className="d-pad-row">
-                    <button 
-                      className="d-btn" 
-                      onClick={() => executeDirection('UP')}
-                      disabled={isExecuting || gameStatus === 'won'}
-                    >
-                      <ArrowUp size={24} />
-                    </button>
-                  </div>
-                  <div className="d-pad-row">
-                    <button 
-                      className="d-btn" 
-                      onClick={() => executeDirection('LEFT')}
-                      disabled={isExecuting || gameStatus === 'won'}
-                    >
-                      <ArrowLeft size={24} />
-                    </button>
-                    <div className="d-btn-center"></div>
-                    <button 
-                      className="d-btn" 
-                      onClick={() => executeDirection('RIGHT')}
-                      disabled={isExecuting || gameStatus === 'won'}
-                    >
-                      <ArrowRight size={24} />
-                    </button>
-                  </div>
-                  <div className="d-pad-row">
-                    <button 
-                      className="d-btn" 
-                      onClick={() => executeDirection('DOWN')}
-                      disabled={isExecuting || gameStatus === 'won'}
-                    >
-                      <ArrowDown size={24} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Manual reset */}
+            {isSortingSolved && (
+              <div className="glass-panel" style={{ background: 'rgba(16, 185, 129, 0.15)', borderColor: '#10b981', textAlign: 'center', padding: '1.5rem', width: '100%', maxWidth: '500px' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981', fontSize: '1.4rem' }}>🌟 Sequence Completed!</h3>
+                <p style={{ margin: '0 0 1rem 0' }}>You ordered all the instructions perfectly. Flower grows up nicely!</p>
                 <button 
-                  className="btn-action btn-reset" 
-                  onClick={handleFullReset} 
-                  style={{ width: '100%', maxWidth: '200px', margin: '0 auto' }}
+                  className="btn-play-again btn-bubble" 
+                  onClick={shuffleCards}
+                  style={{ marginTop: 0 }}
                 >
-                  <RotateCcw size={16} /> Reset Position
+                  Shuffle & Play Again 🔄
                 </button>
               </div>
             )}
-
           </div>
 
-        </section>
+        </main>
+      )}
 
-      </main>
+      {/* TAB 3: MAGIC QUIZ TAB */}
+      {activeTab === 'quiz' && (
+        <main style={{ width: '100%', maxWidth: '800px', margin: '2rem auto 0 auto' }}>
+          
+          {!quizCompleted ? (
+            <div className="quiz-panel">
+              {/* Question Card */}
+              <div className="quiz-card">
+                <div className="quiz-question-header">
+                  <span>COMPUTATIONAL THINKING QUIZ</span>
+                  <span>QUESTION {quizQuestionIdx + 1} OF {QUIZ_QUESTIONS.length}</span>
+                </div>
+                
+                <h3 className="quiz-question-title">
+                  {QUIZ_QUESTIONS[quizQuestionIdx].question}
+                </h3>
+                
+                <div className="quiz-options">
+                  {QUIZ_QUESTIONS[quizQuestionIdx].options.map((opt, idx) => {
+                    const isSelected = selectedAnswer === idx;
+                    const isCorrect = idx === QUIZ_QUESTIONS[quizQuestionIdx].correctAnswer;
+                    
+                    let btnClass = "quiz-option-btn";
+                    if (answerChecked) {
+                      if (isSelected) {
+                        btnClass += isCorrect ? " selected-correct" : " selected-incorrect";
+                      } else if (isCorrect) {
+                        btnClass += " selected-correct"; // Highlight correct answer even if not selected
+                      }
+                    }
+                    
+                    return (
+                      <button 
+                        key={idx}
+                        className={btnClass}
+                        onClick={() => handleAnswerSelect(idx)}
+                        disabled={answerChecked}
+                      >
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          border: '2px solid currentColor', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          marginRight: '0.5rem'
+                        }}>
+                          {answerChecked && isCorrect && <Check size={14} />}
+                          {answerChecked && isSelected && !isCorrect && <X size={14} />}
+                          {!answerChecked && isSelected && "●"}
+                        </div>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Wizard guide speech inside quiz */}
+                <div className="wizard-guide" style={{ margin: '1rem 0 0 0', padding: '0.75rem 1rem', borderRadius: '16px' }}>
+                  <div className="wizard-avatar" style={{ fontSize: '2.5rem' }}>{wizardState}</div>
+                  <div className="wizard-speech" style={{ fontSize: '0.95rem' }}>
+                    <strong>Merlin:</strong> "{guideText}"
+                  </div>
+                </div>
+
+                {/* Footer Controls */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.5rem' }}>
+                  {!answerChecked ? (
+                    <button 
+                      className="btn-action btn-run btn-bubble"
+                      onClick={checkQuizAnswer}
+                      disabled={selectedAnswer === null}
+                    >
+                      Check Answer 🔮
+                    </button>
+                  ) : (
+                    <button 
+                      className="btn-action btn-step btn-bubble"
+                      onClick={nextQuizQuestion}
+                    >
+                      {quizQuestionIdx < QUIZ_QUESTIONS.length - 1 ? "Next Question ➔" : "See Results 🏆"}
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          ) : (
+            // Quiz completed view
+            <div className="quiz-panel" style={{ textAlign: 'center' }}>
+              <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '3rem' }}>
+                <div style={{ fontSize: '5rem' }}>🎉</div>
+                <h2 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0 }}>Quiz Completed!</h2>
+                
+                <p style={{ fontSize: '1.2rem', maxWidth: '500px', margin: 0 }}>
+                  Excellent work! You scored <strong>{quizScore} out of {QUIZ_QUESTIONS.length}</strong>!
+                  <br />
+                  You understand how sequences and instructions work!
+                </p>
+
+                {quizBadge && (
+                  <div className="win-badge-container">
+                    <div className="badge-reward-graphic">🎓</div>
+                    <div className="badge-reward-title">Grand Sequencer Badge</div>
+                    <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>Awarded for scoring 3+ points on the Sequence Magic Quiz!</p>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button 
+                    className="btn-play-again btn-bubble"
+                    onClick={restartQuiz}
+                  >
+                    Try Again 🔄
+                  </button>
+                  <button 
+                    className="app-tab-btn btn-bubble"
+                    onClick={() => {
+                      playSound(sound.click);
+                      setActiveTab('play');
+                      handleFullReset();
+                    }}
+                    style={{ background: '#3b82f6', color: 'white', border: '3px solid #1e293b' }}
+                  >
+                    Back to Cat Game 🐱
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      )}
 
       {/* Win Celebration Modal */}
       {gameStatus === 'won' && (
@@ -1017,7 +1546,11 @@ export default function App() {
             <p className="win-message">
               Hooray! 🌟 You coded Scratchy the Cat to successfully collect the Gift 🎁, eat the Cake 🎂, and enjoy the Meal 🍔 in the exact sequence!
             </p>
-            <button className="btn-play-again" onClick={handleFullReset}>
+            <div className="win-badge-container">
+              <div className="badge-reward-graphic">👑</div>
+              <div className="badge-reward-title">Royal Coder Award</div>
+            </div>
+            <button className="btn-play-again btn-bubble" onClick={handleFullReset}>
               Play Again 🎮
             </button>
           </div>
@@ -1025,7 +1558,7 @@ export default function App() {
       )}
 
       {/* Info footer */}
-      <footer style={{ marginTop: '3rem', color: '#475569', fontSize: '0.85rem', textAlign: 'center' }}>
+      <footer style={{ marginTop: '4rem', color: '#64748b', fontSize: '0.9rem', textAlign: 'center', fontWeight: 600 }}>
         <p>Sequence Magic Game • Designed for Grade 2 Computational Thinking Skills</p>
       </footer>
     </div>

@@ -182,5 +182,99 @@ export const sound = {
     } catch (e) {
       console.warn("Audio play failed:", e);
     }
+  },
+
+  meow: () => {
+    try {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.quadraticRampToValueAtTime(900, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(500, now + 0.25);
+      
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } catch (e) {
+      console.warn("Audio play failed:", e);
+    }
+  },
+
+  correct: () => {
+    try {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      
+      const freqs = [1046.50, 1318.51, 1567.98];
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        gain.gain.setValueAtTime(0.08, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.06 + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.15);
+      });
+    } catch (e) {
+      console.warn("Audio play failed:", e);
+    }
+  },
+
+  incorrect: () => {
+    try {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      
+      [0, 0.12].forEach((delay) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now + delay);
+        gain.gain.setValueAtTime(0.12, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.1);
+      });
+    } catch (e) {
+      console.warn("Audio play failed:", e);
+    }
+  },
+
+  flip: () => {
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.05);
+      
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch (e) {
+      console.warn("Audio play failed:", e);
+    }
   }
 };
